@@ -50,12 +50,12 @@ var (
 )
 
 // NewV1 returns UUID based on current timestamp and MAC address.
-func NewV1() (UUID, error) {
+func NewV1() UUID {
 	return global.NewV1()
 }
 
 // NewV2 returns DCE Security UUID based on POSIX UID/GID.
-func NewV2(domain byte) (UUID, error) {
+func NewV2(domain byte) UUID {
 	return global.NewV2(domain)
 }
 
@@ -65,7 +65,7 @@ func NewV3(ns UUID, name string) UUID {
 }
 
 // NewV4 returns random generated UUID.
-func NewV4() (UUID, error) {
+func NewV4() UUID {
 	return global.NewV4()
 }
 
@@ -76,10 +76,10 @@ func NewV5(ns UUID, name string) UUID {
 
 // Generator provides interface for generating UUIDs.
 type Generator interface {
-	NewV1() (UUID, error)
-	NewV2(domain byte) (UUID, error)
+	NewV1() UUID
+	NewV2(domain byte) UUID
 	NewV3(ns UUID, name string) UUID
-	NewV4() (UUID, error)
+	NewV4() UUID
 	NewV5(ns UUID, name string) UUID
 }
 
@@ -107,12 +107,12 @@ func newRFC4122Generator() Generator {
 }
 
 // NewV1 returns UUID based on current timestamp and MAC address.
-func (g *rfc4122Generator) NewV1() (UUID, error) {
+func (g *rfc4122Generator) NewV1() UUID {
 	u := UUID{}
 
 	timeNow, clockSeq, err := g.getClockSequence()
 	if err != nil {
-		return Nil, err
+		panic(err)
 	}
 	binary.BigEndian.PutUint32(u[0:], uint32(timeNow))
 	binary.BigEndian.PutUint16(u[4:], uint16(timeNow>>32))
@@ -121,23 +121,19 @@ func (g *rfc4122Generator) NewV1() (UUID, error) {
 
 	hardwareAddr, err := g.getHardwareAddr()
 	if err != nil {
-		return Nil, err
+		panic(err)
 	}
 	copy(u[10:], hardwareAddr)
 
 	u.SetVersion(V1)
 	u.SetVariant(VariantRFC4122)
 
-	return u, nil
+	return u
 }
 
 // NewV2 returns DCE Security UUID based on POSIX UID/GID.
-func (g *rfc4122Generator) NewV2(domain byte) (UUID, error) {
-	u, err := g.NewV1()
-	if err != nil {
-		return Nil, err
-	}
-
+func (g *rfc4122Generator) NewV2(domain byte) UUID {
+	u := g.NewV1()
 	switch domain {
 	case DomainPerson:
 		binary.BigEndian.PutUint32(u[:], posixUID)
@@ -150,7 +146,7 @@ func (g *rfc4122Generator) NewV2(domain byte) (UUID, error) {
 	u.SetVersion(V2)
 	u.SetVariant(VariantRFC4122)
 
-	return u, nil
+	return u
 }
 
 // NewV3 returns UUID based on MD5 hash of namespace UUID and name.
@@ -163,15 +159,15 @@ func (g *rfc4122Generator) NewV3(ns UUID, name string) UUID {
 }
 
 // NewV4 returns random generated UUID.
-func (g *rfc4122Generator) NewV4() (UUID, error) {
+func (g *rfc4122Generator) NewV4() UUID {
 	u := UUID{}
 	if _, err := g.rand.Read(u[:]); err != nil {
-		return Nil, err
+		panic(err)
 	}
 	u.SetVersion(V4)
 	u.SetVariant(VariantRFC4122)
 
-	return u, nil
+	return u
 }
 
 // NewV5 returns UUID based on SHA-1 hash of namespace UUID and name.
